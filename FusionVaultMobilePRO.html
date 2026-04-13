@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>FusionVault Pro | Mobile Security Suite</title>
+    
+    <!-- Power Stack -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #020204;
+            --surface: #0a0a0c;
+            --brand: #f59e0b;
+            --brand-glow: rgba(245, 158, 11, 0.4);
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+            --card: #0c0c0e;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        .light-theme {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --brand: #d97706;
+            --brand-glow: rgba(217, 119, 6, 0.2);
+            --text: #0f172a;
+            --text-dim: #475569;
+            --border: #e2e8f0;
+            --card: #ffffff;
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text); 
+            transition: background-color 0.3s ease;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Layout principal - desktop sidebar + mobile bottom nav */
+        .app-grid { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
+        .sidebar { background: var(--surface); border-right: 1px solid var(--border); transition: all 0.3s ease; overflow-y: auto; }
+
+        /* Mobile bottom navigation - só aparece abaixo de 768px */
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding: 12px 20px 20px;
+            z-index: 100;
+            justify-content: space-around;
+            border-radius: 28px 28px 0 0;
+        }
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            transition: all 0.2s;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 30px;
+        }
+        .mobile-nav-item.active {
+            background: var(--brand);
+            color: white;
+            box-shadow: 0 0 12px var(--brand-glow);
+        }
+        .mobile-nav-item i { width: 20px; height: 20px; }
+
+        .glass-panel { background: var(--surface); border: 1px solid var(--border); backdrop-filter: blur(4px); }
+
+        .nav-item {
+            display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--text-dim); transition: all 0.2s; cursor: pointer;
+        }
+        .nav-item:hover { background: var(--brand-glow); color: var(--text); }
+        .nav-item.active { background: var(--brand); color: white; }
+
+        /* Tabela Fusion mobile-friendly */
+        .fusion-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+        .fusion-table th { padding: 12px 16px; font-size: 10px; text-transform: uppercase; color: var(--brand); text-align: left; font-weight: 800; border-bottom: 1px solid var(--border); }
+        .fusion-table td { padding: 14px 16px; background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 13px; transition: all 0.2s; }
+        .fusion-table td:first-child { border-left: 1px solid var(--border); border-top-left-radius: 14px; border-bottom-left-radius: 14px; }
+        .fusion-table td:last-child { border-right: 1px solid var(--border); border-top-right-radius: 14px; border-bottom-right-radius: 14px; }
+        .fusion-table tr:hover td { border-color: var(--brand); }
+
+        .btn-brand { background: var(--brand); color: white; font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; transition: all 0.2s; border-radius: 12px; }
+        .btn-brand:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 12px var(--brand-glow); }
+        .btn-brand:active { transform: translateY(0); }
+
+        input, textarea, select { background: var(--surface) !important; border: 1px solid var(--border) !important; color: var(--text) !important; border-radius: 10px; padding: 10px 14px; transition: all 0.2s; }
+        input:focus { border-color: var(--brand) !important; outline: none; box-shadow: 0 0 0 2px var(--brand-glow); }
+
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--brand); border-radius: 10px; }
+
+        /* Slider */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: var(--border); border-radius: 3px; }
+        input[type=range]::-webkit-slider-thumb { height: 18px; width: 18px; border-radius: 50%; background: var(--brand); cursor: pointer; -webkit-appearance: none; margin-top: -6px; }
+
+        .generator-box { background: var(--card); border: 2px solid var(--brand); border-radius: 15px; padding: 15px; font-family: 'JetBrains Mono', monospace; word-break: break-all; text-align: center; font-size: 1.2rem; min-height: 60px; display: flex; align-items: center; justify-content: center; color: var(--success); }
+
+        /* Ajustes Mobile */
+        @media (max-width: 768px) {
+            .app-grid { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .mobile-bottom-nav { display: flex; }
+            main { padding-bottom: 85px !important; }
+            .glass-panel { backdrop-filter: blur(12px); }
+            .fusion-table th, .fusion-table td { padding: 10px 12px; font-size: 11px; }
+            .btn-brand, .nav-item { cursor: pointer; touch-action: manipulation; }
+            .modal-content { width: 94% !important; margin: 1rem; }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-bottom-nav { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NOTIFICAÇÕES -->
+    <div id="toast-container" class="fixed top-6 right-6 left-6 md:left-auto z-[10000] flex flex-col gap-3"></div>
+
+    <!-- MODAL DE CONFIRMAÇÃO -->
+    <div id="confirm-modal" class="fixed inset-0 z-[9500] bg-black/80 backdrop-blur-sm hidden items-center justify-center p-6">
+        <div class="glass-panel w-full max-w-sm p-8 rounded-[2.5rem] space-y-6 text-center border-amber-500/20">
+            <div class="inline-flex p-4 bg-red-500/10 rounded-full text-red-500 mb-2"><i data-lucide="alert-triangle"></i></div>
+            <h3 id="confirm-title" class="text-xl font-black uppercase italic tracking-tighter text-white">Confirmar Ação</h3>
+            <p id="confirm-msg" class="text-xs text-zinc-500 font-bold uppercase tracking-widest leading-relaxed"></p>
+            <div class="flex gap-4">
+                <button onclick="closeConfirm()" class="flex-1 py-4 text-[10px] font-black uppercase text-zinc-500">Cancelar</button>
+                <button id="confirm-yes-btn" class="flex-1 py-4 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OVERLAY DE LOGIN -->
+    <div id="auth-overlay" class="fixed inset-0 z-[9000] bg-[#020202] flex items-center justify-center p-6">
+        <div class="w-full max-w-md space-y-10 text-center fade-in">
+            <div class="relative inline-flex p-8 bg-amber-600 rounded-[3rem] shadow-2xl shadow-amber-600/30 animate-pulse">
+                <i data-lucide="shield-check" class="text-white w-14 h-14"></i>
+            </div>
+            <div class="space-y-2">
+                <h1 class="text-5xl font-black italic tracking-tighter text-white uppercase">Fusion<span class="text-amber-500">Vault</span></h1>
+                <p id="auth-subtitle" class="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.6em]">Absolute Master v2.5 PRO</p>
+            </div>
+            <div class="glass-panel p-10 rounded-[3rem] space-y-5 shadow-2xl border-white/5">
+                <div class="space-y-2 text-left">
+                    <label class="text-[9px] font-black uppercase text-zinc-500 ml-4 tracking-widest">Master Access Key</label>
+                    <input type="password" id="master-pwd" class="w-full p-5 rounded-2xl text-center font-mono text-2xl tracking-[0.4em] bg-black border-white/10" placeholder="••••••••">
+                </div>
+                <button id="auth-btn" class="w-full py-5 btn-brand rounded-2xl text-sm shadow-xl">Desbloquear Nódulo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ESTRUTURA PRINCIPAL -->
+    <div id="app-container" class="hidden app-grid">
+        
+        <!-- SIDEBAR DESKTOP -->
+        <aside class="sidebar p-8 flex flex-col">
+            <div class="flex items-center gap-4 mb-14 px-2">
+                <div class="p-2.5 bg-amber-600 rounded-xl shadow-lg shadow-amber-600/20"><i data-lucide="zap" class="text-white w-5 h-5"></i></div>
+                <h2 class="text-2xl font-black italic tracking-tighter">Fusion<span class="text-amber-500">Pro</span></h2>
+            </div>
+            <nav class="flex-1 space-y-2">
+                <div onclick="switchView('vault')" id="nav-vault" class="nav-item active"><i data-lucide="database"></i> Cofre Master</div>
+                <div onclick="switchView('notes')" id="nav-notes" class="nav-item"><i data-lucide="file-text"></i> Bloco Seguro</div>
+                <div onclick="switchView('data')" id="nav-data" class="nav-item"><i data-lucide="refresh-cw"></i> Data Hub</div>
+                <div onclick="switchView('settings')" id="nav-settings" class="nav-item"><i data-lucide="settings"></i> Configurações</div>
+            </nav>
+            <div class="mt-auto space-y-6">
+                <div class="p-5 glass-panel rounded-3xl space-y-3">
+                    <div class="flex justify-between text-[10px] font-black opacity-50 uppercase tracking-widest">
+                        <span>Segurança</span><span id="health-pct">100%</span>
+                    </div>
+                    <div class="h-1.5 bg-white/5 rounded-full overflow-hidden shadow-inner">
+                        <div id="health-bar" class="h-full bg-emerald-500 w-full transition-all duration-1000"></div>
+                    </div>
+                </div>
+                <button onclick="logout()" class="nav-item !text-red-500 w-full hover:bg-red-500/5"><i data-lucide="log-out"></i> Sair do Nódulo</button>
+            </div>
+        </aside>
+
+        <main class="flex flex-col h-full overflow-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(245,158,11,0.03),transparent_50%)] relative">
+            <header class="h-20 border-b border-white/5 px-4 md:px-10 flex items-center justify-between glass-panel shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 px-3 py-2 rounded-full border border-emerald-500/20 bg-emerald-500/5">
+                        <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]"></div>
+                        <span class="text-emerald-500 text-[9px] font-black uppercase tracking-[0.2em]">Encrypted Session</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 md:gap-6">
+                    <button onclick="toggleTheme()" class="p-3 rounded-full border border-white/10 hover:border-amber-500/50 transition-all text-zinc-500 hover:text-amber-500">
+                        <i id="theme-icon" data-lucide="moon" class="w-4 h-4"></i>
+                    </button>
+                    <div class="relative w-48 md:w-72 group">
+                        <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"></i>
+                        <input type="text" id="global-search" class="w-full pl-10 pr-4 py-2.5 text-[10px] font-black tracking-widest uppercase rounded-full bg-black/40 border-white/5" placeholder="BUSCAR...">
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-5 md:p-10 custom-scroll pb-24 md:pb-10">
+                
+                <!-- VIEW: COFRE -->
+                <section id="view-vault" class="view-section space-y-8 fade-in">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+                        <div class="space-y-1">
+                            <h2 class="text-3xl md:text-4xl font-black italic uppercase tracking-tighter">Database <span class="text-amber-500">Master</span></h2>
+                            <p class="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Nódulo de Credenciais Protegido por AES-256</p>
+                        </div>
+                        <div class="flex gap-3 w-full sm:w-auto">
+                            <button onclick="toggleModal('modal-generator-pro', true)" class="flex-1 sm:flex-none px-5 py-4 glass-panel border-amber-500/20 text-amber-500 hover:bg-amber-500/5 rounded-2xl flex items-center justify-center gap-2">
+                                <i data-lucide="zap" class="w-5 h-5"></i> Gerador
+                            </button>
+                            <button onclick="toggleModal('modal-entry', true)" class="flex-1 sm:flex-none px-6 py-4 btn-brand flex items-center justify-center gap-2 shadow-2xl">
+                                <i data-lucide="plus" class="w-5 h-5"></i> Novo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="fusion-table min-w-[640px]">
+                            <thead>
+                                <tr><th class="w-24">ID</th><th>Serviço</th><th>Utilizador</th><th>Senha</th><th class="text-right">Ações</th></tr>
+                            </thead>
+                            <tbody id="vault-tbody"></tbody>
+                        </table>
+                        <div id="empty-msg" class="hidden text-center py-20 opacity-20 font-black uppercase tracking-[1em] italic text-white">Cofre Vazio</div>
+                    </div>
+                </section>
+
+                <!-- VIEW: NOTAS -->
+                <section id="view-notes" class="view-section hidden space-y-8 fade-in">
+                    <div class="flex flex-wrap justify-between items-center gap-4">
+                        <h2 class="text-3xl md:text-4xl font-black italic uppercase tracking-tighter">Notebook <span class="text-amber-500">Pro</span></h2>
+                        <button onclick="createNewNote()" class="px-6 py-4 btn-brand flex items-center gap-2"><i data-lucide="file-plus" class="w-5 h-5"></i> Novo Protocolo</button>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[550px]">
+                        <div id="notes-list" class="lg:col-span-1 space-y-3 overflow-y-auto custom-scroll pr-2"></div>
+                        <div id="note-editor" class="lg:col-span-3 glass-panel rounded-[2rem] p-6 flex flex-col hidden border-white/5 shadow-2xl">
+                            <input type="text" id="note-title" class="bg-transparent border-none text-2xl font-black uppercase mb-4 tracking-tighter focus:ring-0 text-white" placeholder="TÍTULO">
+                            <textarea id="note-content" class="flex-1 bg-transparent border-none resize-none font-mono text-sm leading-loose focus:ring-0 text-zinc-400 custom-scroll" placeholder="Inicie a escrita segura..."></textarea>
+                            <div class="flex gap-4 mt-6 pt-6 border-t border-white/5">
+                                <button onclick="saveCurrentNote()" class="flex-1 py-5 btn-brand text-xs">Sincronizar</button>
+                                <button onclick="confirmAction('Deseja excluir esta nota permanentemente?', deleteCurrentNote)" class="px-8 py-5 bg-red-600/10 text-red-500 rounded-2xl"><i data-lucide="trash-2"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: DATA HUB (IMPORT/EXPORT CORRIGIDOS) -->
+                <section id="view-data" class="view-section hidden space-y-8 fade-in">
+                    <h2 class="text-3xl md:text-4xl font-black italic uppercase tracking-tighter">Data <span class="text-amber-500">Hub</span></h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="glass-panel p-8 rounded-[2.5rem] space-y-6 flex flex-col items-center text-center">
+                            <div class="p-5 bg-amber-500/5 rounded-full border border-amber-500/10"><i data-lucide="upload-cloud" class="w-8 h-8 text-amber-500"></i></div>
+                            <h3 class="font-black text-white uppercase tracking-widest text-sm">Importação</h3>
+                            <p class="text-[9px] text-zinc-500 uppercase font-bold tracking-tight">JSON ou CSV (campos flexíveis)</p>
+                            <input type="file" id="file-import" class="hidden" accept=".json,.csv" onchange="handleImport(this)">
+                            <button onclick="document.getElementById('file-import').click()" class="w-full py-5 border-2 border-dashed border-white/10 rounded-2xl text-[10px] font-black uppercase hover:border-amber-500 transition-all">Selecionar Arquivo</button>
+                        </div>
+                        <div class="glass-panel p-8 rounded-[2.5rem] space-y-6 flex flex-col items-center text-center">
+                            <div class="p-5 bg-blue-500/5 rounded-full border border-blue-500/10"><i data-lucide="download" class="w-8 h-8 text-blue-500"></i></div>
+                            <h3 class="font-black text-white uppercase tracking-widest text-sm">Backup & Exportação</h3>
+                            <div class="grid grid-cols-2 gap-3 w-full">
+                                <button onclick="exportData('json')" class="py-4 glass-panel rounded-2xl text-[9px] font-black uppercase hover:bg-white/5">JSON</button>
+                                <button onclick="exportData('csv')" class="py-4 glass-panel rounded-2xl text-[9px] font-black uppercase hover:bg-white/5">CSV</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: CONFIGURAÇÕES -->
+                <section id="view-settings" class="view-section hidden space-y-8 fade-in">
+                    <h2 class="text-3xl md:text-4xl font-black italic uppercase tracking-tighter">Nodo de <span class="text-amber-500">Ajuste</span></h2>
+                    <div class="max-w-xl glass-panel p-8 rounded-[2.5rem] space-y-8">
+                        <div class="space-y-5">
+                            <h3 class="text-xl font-black uppercase italic tracking-tighter text-amber-500 border-b border-white/5 pb-4">Alterar Senha Mestra</h3>
+                            <div class="space-y-3">
+                                <input type="password" id="new-master-pwd" class="w-full p-5 bg-black border-white/10 font-mono tracking-widest" placeholder="NOVA SENHA (8+ CARACTERES)">
+                                <input type="password" id="confirm-new-master-pwd" class="w-full p-5 bg-black border-white/10 font-mono tracking-widest" placeholder="CONFIRMAR SENHA">
+                                <button onclick="confirmAction('Isso irá re-criptografar todos os seus dados. Continuar?', changeMasterPassword)" class="w-full py-5 btn-brand text-xs">Atualizar Chave Master</button>
+                            </div>
+                        </div>
+                        <div class="pt-6 border-t border-white/5 space-y-4">
+                            <h3 class="text-xl font-black uppercase italic tracking-tighter text-red-500">Zona de Risco</h3>
+                            <button onclick="confirmAction('CUIDADO: Isso apagará TODOS os dados permanentemente!', wipeDatabase)" class="w-full py-5 bg-red-600/10 border border-red-600/20 text-red-500 rounded-2xl text-[10px] font-black uppercase">Limpar Banco de Dados (Wipe)</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- MOBILE BOTTOM NAVIGATION -->
+    <div id="mobile-bottom-nav" class="mobile-bottom-nav">
+        <div onclick="switchView('vault')" id="mob-nav-vault" class="mobile-nav-item active"><i data-lucide="database"></i><span>Cofre</span></div>
+        <div onclick="switchView('notes')" id="mob-nav-notes" class="mobile-nav-item"><i data-lucide="file-text"></i><span>Notas</span></div>
+        <div onclick="switchView('data')" id="mob-nav-data" class="mobile-nav-item"><i data-lucide="refresh-cw"></i><span>DataHub</span></div>
+        <div onclick="switchView('settings')" id="mob-nav-settings" class="mobile-nav-item"><i data-lucide="settings"></i><span>Ajustes</span></div>
+    </div>
+
+    <!-- MODAIS (ENTRY + GERADOR) -->
+    <div id="modal-entry" class="fixed inset-0 z-[8000] bg-black/95 hidden items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg p-8 rounded-[2.5rem] space-y-6 fade-in border-amber-500/10 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-3xl font-black italic uppercase tracking-tighter">Novo <span class="text-amber-500">Registo</span></h3>
+            <input type="hidden" id="entry-id">
+            <div class="space-y-4">
+                <input type="text" id="entry-svc" class="w-full p-5 bg-black text-xs font-black uppercase tracking-widest" placeholder="EX: BINANCE">
+                <input type="text" id="entry-usr" class="w-full p-5 bg-black text-sm" placeholder="Utilizador / E-mail">
+                <div class="relative">
+                    <input type="password" id="entry-psw" class="w-full p-5 bg-black font-mono tracking-[0.3em]" placeholder="••••••••">
+                    <button onclick="toggleEntryPassVisibility()" class="absolute right-14 top-1/2 -translate-y-1/2 text-zinc-600"><i id="entry-eye" data-lucide="eye" class="w-5 h-5"></i></button>
+                    <button onclick="toggleModal('modal-generator-pro', true, true)" class="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
+                </div>
+            </div>
+            <div class="flex gap-4 pt-4">
+                <button onclick="toggleModal('modal-entry', false)" class="flex-1 py-5 text-[10px] font-black uppercase text-zinc-500">Cancelar</button>
+                <button onclick="saveVaultEntry()" class="flex-1 py-5 btn-brand rounded-2xl">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-generator-pro" class="fixed inset-0 z-[8500] bg-black/95 hidden items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md p-8 rounded-[2rem] space-y-6 fade-in border-amber-500/20">
+            <h3 class="text-2xl font-black italic uppercase tracking-tighter">Industrial <span class="text-amber-500">Gen PRO</span></h3>
+            <div class="space-y-5">
+                <div class="flex justify-between text-[10px] font-black uppercase text-zinc-500">
+                    <span>Comprimento</span><span id="pro-len-val" class="text-amber-500">20</span>
+                </div>
+                <input type="range" id="pro-len-slider" min="8" max="128" value="20" class="w-full" oninput="document.getElementById('pro-len-val').innerText = this.value; generateProPassword()">
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center gap-3 p-3 glass-panel rounded-xl"><input type="checkbox" id="pro-opt-caps" checked onchange="generateProPassword()" class="accent-amber-500"> <span class="text-[9px] font-black uppercase">MAIÚSCULAS</span></label>
+                    <label class="flex items-center gap-3 p-3 glass-panel rounded-xl"><input type="checkbox" id="pro-opt-low" checked onchange="generateProPassword()" class="accent-amber-500"> <span class="text-[9px] font-black uppercase">minúsculas</span></label>
+                    <label class="flex items-center gap-3 p-3 glass-panel rounded-xl"><input type="checkbox" id="pro-opt-num" checked onchange="generateProPassword()" class="accent-amber-500"> <span class="text-[9px] font-black uppercase">0-9</span></label>
+                    <label class="flex items-center gap-3 p-3 glass-panel rounded-xl"><input type="checkbox" id="pro-opt-sym" checked onchange="generateProPassword()" class="accent-amber-500"> <span class="text-[9px] font-black uppercase">SÍMBOLOS</span></label>
+                </div>
+            </div>
+            <div id="pro-preview" class="generator-box text-sm">---</div>
+            <div class="flex gap-3">
+                <button onclick="generateProPassword()" class="flex-1 py-4 glass-panel border-white/5 text-white rounded-xl text-[10px] font-black uppercase">Regenerar</button>
+                <button onclick="applyProPassword()" class="flex-1 py-4 btn-brand rounded-xl">Aplicar</button>
+            </div>
+            <button onclick="toggleModal('modal-generator-pro', false)" class="w-full text-center text-[9px] font-black uppercase text-zinc-600">Fechar</button>
+        </div>
+    </div>
+
+    <script>
+        // --- ENGINE COMPLETO COM IMPORTAÇÃO/EXPORTAÇÃO CORRIGIDA ---
+        const DB_KEY = 'fusion_vault_pro_v2_final';
+        let STATE = {
+            unlocked: false,
+            masterKey: '',
+            theme: 'dark',
+            data: { accounts: [], notes: [] },
+            currentNoteId: null,
+            view: 'vault',
+            isLinkedToForm: false
+        };
+
+        window.onload = () => {
+            const saved = localStorage.getItem(DB_KEY);
+            if (!saved) document.getElementById('auth-subtitle').innerText = 'Setup de Primeiro Acesso';
+            lucide.createIcons();
+            document.getElementById('master-pwd').onkeydown = (e) => { if(e.key === 'Enter') document.getElementById('auth-btn').click(); };
+        };
+
+        document.getElementById('auth-btn').onclick = async () => {
+            const pwd = document.getElementById('master-pwd').value;
+            if (pwd.length < 4) return toast("Mínimo 4 dígitos", "err");
+            const saved = localStorage.getItem(DB_KEY);
+            if (!saved) {
+                const initial = { accounts: [], notes: [] };
+                const encrypted = CryptoJS.AES.encrypt(JSON.stringify(initial), pwd).toString();
+                const hash = CryptoJS.SHA256(pwd).toString();
+                localStorage.setItem(DB_KEY, JSON.stringify({ payload: encrypted, check: hash, theme: 'dark' }));
+                unlock(pwd, initial, 'dark');
+            } else {
+                const db = JSON.parse(saved);
+                if (CryptoJS.SHA256(pwd).toString() === db.check) {
+                    try {
+                        const bytes = CryptoJS.AES.decrypt(db.payload, pwd);
+                        const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+                        unlock(pwd, decryptedData, db.theme || 'dark');
+                    } catch(e) { toast("Falha Crítica na Criptografia", "err"); }
+                } else { toast("Chave Master Incorreta", "err"); }
+            }
+        };
+
+        function unlock(key, data, theme) {
+            STATE.unlocked = true; STATE.masterKey = key; STATE.data = data; STATE.theme = theme;
+            document.getElementById('auth-overlay').style.display = 'none';
+            document.getElementById('app-container').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('app-grid');
+            applyTheme(); renderVault(); renderNotesList(); updateStats();
+            toast("Nódulo Sincronizado");
+        }
+
+        async function persist() {
+            if (!STATE.unlocked) return;
+            const encrypted = CryptoJS.AES.encrypt(JSON.stringify(STATE.data), STATE.masterKey).toString();
+            const db = JSON.parse(localStorage.getItem(DB_KEY)) || {};
+            db.payload = encrypted; db.theme = STATE.theme; db.check = CryptoJS.SHA256(STATE.masterKey).toString();
+            localStorage.setItem(DB_KEY, JSON.stringify(db));
+            updateStats();
+        }
+
+        function logout() { location.reload(); }
+        function changeMasterPassword() {
+            const p1 = document.getElementById('new-master-pwd').value;
+            const p2 = document.getElementById('confirm-new-master-pwd').value;
+            if(p1.length < 8) return toast("Mínimo 8 caracteres", "err");
+            if(p1 !== p2) return toast("Senhas não coincidem", "err");
+            STATE.masterKey = p1;
+            persist();
+            toast("Senha Master Atualizada!");
+            document.getElementById('new-master-pwd').value = "";
+            document.getElementById('confirm-new-master-pwd').value = "";
+        }
+        function wipeDatabase() { localStorage.removeItem(DB_KEY); location.reload(); }
+
+        function switchView(view) {
+            STATE.view = view;
+            document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`view-${view}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(`nav-${view}`).classList.add('active');
+            document.querySelectorAll('.mobile-nav-item').forEach(n => n.classList.remove('active'));
+            const mobId = `mob-nav-${view}`;
+            if(document.getElementById(mobId)) document.getElementById(mobId).classList.add('active');
+            lucide.createIcons();
+        }
+
+        function toggleTheme() { STATE.theme = STATE.theme === 'dark' ? 'light' : 'dark'; applyTheme(); persist(); }
+        function applyTheme() {
+            document.body.className = STATE.theme === 'light' ? 'light-theme' : '';
+            const icon = document.getElementById('theme-icon');
+            icon.setAttribute('data-lucide', STATE.theme === 'light' ? 'sun' : 'moon');
+            lucide.createIcons();
+        }
+        function toggleModal(id, show, linkToForm = false) {
+            const m = document.getElementById(id);
+            m.classList.toggle('hidden', !show); m.classList.toggle('flex', show);
+            if (id === 'modal-generator-pro' && show) { STATE.isLinkedToForm = linkToForm; generateProPassword(); }
+            if (id === 'modal-entry' && !show) { document.getElementById('entry-id').value = ''; document.getElementById('entry-svc').value = ''; document.getElementById('entry-usr').value = ''; document.getElementById('entry-psw').value = ''; document.getElementById('entry-psw').type = 'password'; }
+        }
+        function toast(msg, type = "success") {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = `glass-panel p-5 rounded-2xl flex items-center gap-4 shadow-2xl border-l-4 ${type === 'err' ? 'border-red-500' : 'border-amber-500'} backdrop-blur-3xl`;
+            el.innerHTML = `<i data-lucide="${type === 'err' ? 'alert-triangle' : 'check-circle'}" class="w-5 h-5 text-white"></i><span class="font-black uppercase text-[10px] tracking-widest text-white">${msg}</span>`;
+            container.appendChild(el); lucide.createIcons();
+            setTimeout(() => el.remove(), 4000);
+        }
+        function confirmAction(msg, action) { document.getElementById('confirm-msg').innerText = msg; document.getElementById('confirm-modal').classList.remove('hidden'); document.getElementById('confirm-modal').classList.add('flex'); document.getElementById('confirm-yes-btn').onclick = () => { action(); closeConfirm(); }; }
+        function closeConfirm() { document.getElementById('confirm-modal').classList.add('hidden'); }
+
+        function generateProPassword() {
+            const len = parseInt(document.getElementById('pro-len-slider').value);
+            const useCaps = document.getElementById('pro-opt-caps').checked;
+            const useLow = document.getElementById('pro-opt-low').checked;
+            const useNum = document.getElementById('pro-opt-num').checked;
+            const useSym = document.getElementById('pro-opt-sym').checked;
+            const caps = "ABCDEFGHIJKLMNOPQRSTUVWXYZ", low = "abcdefghijklmnopqrstuvwxyz", num = "0123456789", sym = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+            let charset = "";
+            if (useCaps) charset += caps; if (useLow) charset += low; if (useNum) charset += num; if (useSym) charset += sym;
+            if (charset === "") charset = low;
+            let password = "";
+            const array = new Uint32Array(len);
+            window.crypto.getRandomValues(array);
+            for (let i = 0; i < len; i++) password += charset.charAt(array[i] % charset.length);
+            document.getElementById('pro-preview').innerText = password;
+        }
+        function applyProPassword() {
+            const pwd = document.getElementById('pro-preview').innerText;
+            if (STATE.isLinkedToForm) { document.getElementById('entry-psw').value = pwd; document.getElementById('entry-psw').type = 'text'; }
+            navigator.clipboard.writeText(pwd); toast("Senha Copiada e Aplicada"); toggleModal('modal-generator-pro', false);
+        }
+
+        function toggleEntryPassVisibility() { const input = document.getElementById('entry-psw'); const icon = document.getElementById('entry-eye'); input.type = input.type === 'password' ? 'text' : 'password'; icon.setAttribute('data-lucide', input.type === 'password' ? 'eye' : 'eye-off'); lucide.createIcons(); }
+        function saveVaultEntry() {
+            const id = document.getElementById('entry-id').value;
+            const svc = document.getElementById('entry-svc').value.trim();
+            const usr = document.getElementById('entry-usr').value.trim();
+            const psw = document.getElementById('entry-psw').value;
+            if (!svc || !psw) return toast("Dados Incompletos", "err");
+            if (id) { const idx = STATE.data.accounts.findIndex(a => a.id == id); STATE.data.accounts[idx] = { ...STATE.data.accounts[idx], svc, usr, psw }; toast("Atualizado"); }
+            else { STATE.data.accounts.push({ id: Date.now(), svc, usr, psw, date: new Date().toLocaleDateString() }); toast("Criado"); }
+            persist(); renderVault(); toggleModal('modal-entry', false);
+        }
+        function editEntry(id) { const entry = STATE.data.accounts.find(a => a.id == id); document.getElementById('entry-id').value = entry.id; document.getElementById('entry-svc').value = entry.svc; document.getElementById('entry-usr').value = entry.usr; document.getElementById('entry-psw').value = entry.psw; toggleModal('modal-entry', true); }
+        function deleteEntry(id) { STATE.data.accounts = STATE.data.accounts.filter(a => a.id != id); persist(); renderVault(); toast("Removido"); }
+        function togglePassTable(id, btn) { const input = document.getElementById(`psw-${id}`); const icon = btn.querySelector('i'); const isHidden = input.type === 'password'; input.type = isHidden ? 'text' : 'password'; icon.setAttribute('data-lucide', isHidden ? 'eye-off' : 'eye'); lucide.createIcons(); }
+        function renderVault() {
+            const query = document.getElementById('global-search').value.toLowerCase();
+            const tbody = document.getElementById('vault-tbody');
+            const empty = document.getElementById('empty-msg');
+            tbody.innerHTML = '';
+            const filtered = STATE.data.accounts.filter(a => a.svc.toLowerCase().includes(query) || (a.usr && a.usr.toLowerCase().includes(query)));
+            empty.classList.toggle('hidden', filtered.length > 0);
+            filtered.forEach(a => { const tr = document.createElement('tr'); tr.innerHTML = `<td class="font-mono text-[9px] opacity-20">#${a.id.toString().slice(-6)}</td><td class="font-black text-amber-500 uppercase">${escapeHtml(a.svc)}</td><td class="text-zinc-500 font-mono text-xs">${escapeHtml(a.usr || '---')}</td><td class="relative"><input type="password" id="psw-${a.id}" value="${escapeHtml(a.psw)}" readonly class="bg-transparent border-none font-mono text-xs w-full p-0"></td><td class="text-right flex items-center justify-end gap-1"><button onclick="togglePassTable(${a.id}, this)" class="p-2"><i data-lucide="eye" class="w-4 h-4"></i></button><button onclick="navigator.clipboard.writeText('${escapeHtml(a.psw).replace(/'/g, "\\'")}'); toast('Copiada')" class="p-2"><i data-lucide="copy" class="w-4 h-4"></i></button><button onclick="editEntry(${a.id})" class="p-2"><i data-lucide="edit-3"></i></button><button onclick="confirmAction('Remover ${escapeHtml(a.svc)}?', () => deleteEntry(${a.id}))" class="p-2"><i data-lucide="trash-2"></i></button></td>`; tbody.appendChild(tr); });
+            lucide.createIcons();
+        }
+        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m; }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) { return c; }); }
+        document.getElementById('global-search').oninput = renderVault;
+        function renderNotesList() { const list = document.getElementById('notes-list'); list.innerHTML = ''; STATE.data.notes.forEach(n => { const div = document.createElement('div'); div.className = `p-5 glass-panel rounded-2xl cursor-pointer transition-all ${STATE.currentNoteId == n.id ? 'border-amber-500 bg-amber-500/10' : ''}`; div.onclick = () => openNote(n.id); div.innerHTML = `<h4 class="font-black uppercase text-[10px]">${escapeHtml(n.title || 'Novo Protocolo')}</h4><p class="text-[8px] text-zinc-500 mt-2">${new Date(n.id).toLocaleDateString()}</p>`; list.appendChild(div); }); }
+        function createNewNote() { const id = Date.now(); STATE.data.notes.push({ id, title: 'NOVO PROTOCOLO', content: '' }); persist(); renderNotesList(); openNote(id); }
+        function openNote(id) { STATE.currentNoteId = id; const note = STATE.data.notes.find(n => n.id == id); document.getElementById('note-editor').classList.remove('hidden'); document.getElementById('note-title').value = note.title; document.getElementById('note-content').value = note.content; renderNotesList(); }
+        function saveCurrentNote() { if (!STATE.currentNoteId) return; const note = STATE.data.notes.find(n => n.id == STATE.currentNoteId); note.title = document.getElementById('note-title').value; note.content = document.getElementById('note-content').value; persist(); renderNotesList(); toast("Protocolo Salvo"); }
+        function deleteCurrentNote() { STATE.data.notes = STATE.data.notes.filter(n => n.id != STATE.currentNoteId); STATE.currentNoteId = null; document.getElementById('note-editor').classList.add('hidden'); persist(); renderNotesList(); toast("Nota Expurgada"); }
+        
+        // IMPORT/EXPORT CORRIGIDOS
+        function handleImport(input) {
+            const file = input.files[0]; if (!file) return toast("Nenhum arquivo selecionado", "err");
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                try {
+                    if (file.name.endsWith('.json')) {
+                        const jsonData = JSON.parse(content);
+                        importAccounts(jsonData);
+                    } else if (file.name.endsWith('.csv')) {
+                        Papa.parse(content, { header: true, skipEmptyLines: true, complete: (res) => { importAccounts(res.data); } });
+                    } else { toast("Formato não suportado. Use JSON ou CSV", "err"); }
+                } catch(err) { toast("Erro ao processar arquivo: " + err.message, "err"); }
+            };
+            reader.onerror = () => toast("Erro na leitura do arquivo", "err");
+            reader.readAsText(file);
+            input.value = '';
+        }
+
+        function importAccounts(data) {
+            let items = Array.isArray(data) ? data : (data.accounts ? data.accounts : []);
+            if(items.length === 0) { toast("Nenhum registro encontrado no arquivo", "err"); return; }
+            let importedCount = 0;
+            for(let item of items) {
+                const svc = item.servico || item.service || item.site || item.name || item.Serviço || item.Service || "";
+                const usr = item.usuario || item.user || item.login || item.email || item.Usuário || item.User || "";
+                const psw = item.senha || item.password || item.psw || item.pwd || item.Senha || item.Password || "";
+                if(svc && psw) {
+                    STATE.data.accounts.push({ id: Date.now() + importedCount, svc: String(svc), usr: String(usr || ""), psw: String(psw), date: new Date().toLocaleDateString() });
+                    importedCount++;
+                }
+            }
+            if(importedCount > 0) { persist(); renderVault(); toast(`${importedCount} registros importados com sucesso!`); switchView('vault'); }
+            else { toast("Nenhum registro válido encontrado (campos: serviço + senha)", "err"); }
+        }
+
+        function exportData(type) {
+            if(STATE.data.accounts.length === 0) { toast("Nenhum dado para exportar", "err"); return; }
+            let content, filename, mime;
+            if(type === 'json') {
+                content = JSON.stringify(STATE.data.accounts, null, 2);
+                filename = `fusion_backup_${Date.now()}.json`;
+                mime = 'application/json';
+            } else {
+                content = Papa.unparse(STATE.data.accounts);
+                filename = `fusion_backup_${Date.now()}.csv`;
+                mime = 'text/csv';
+            }
+            const blob = new Blob([content], { type: mime });
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast(`Exportação ${type.toUpperCase()} concluída`);
+        }
+
+        function updateStats() { const count = STATE.data.accounts.length; const weak = STATE.data.accounts.filter(a => a.psw.length < 10).length; const score = count ? Math.round(((count - weak) / count) * 100) : 100; document.getElementById('health-pct').innerText = `${score}%`; document.getElementById('health-bar').style.width = `${score}%`; document.getElementById('health-bar').className = `h-full transition-all duration-1000 ${score > 75 ? 'bg-emerald-500' : score > 40 ? 'bg-amber-500' : 'bg-red-500'}`; }
+    </script>
+</body>
+</html>
